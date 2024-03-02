@@ -7,7 +7,7 @@ class OrbitSystem:
         self.timeinterval = timeinterval
         self.trialamount = trialamount
         self.reportinterval = reportinterval
-        
+
         self.numberofparticle = 0
         self.dictionary = {}
         self.x_list = []
@@ -15,8 +15,9 @@ class OrbitSystem:
         self.Grav = 6.6743*(10**-11)
 
     def addparticle(self, mass : int, x_pos : float, y_pos :float, x_vel : float, y_vel : float):
-        self.numberofparticle += 1
+        
         self.dictionary.update({self.numberofparticle : [mass, x_pos, y_pos, x_vel, y_vel, 0, 0]})
+        self.numberofparticle += 1
 
     def initalconditions(self) :
         return self.dictionary
@@ -27,7 +28,6 @@ class OrbitSystem:
         x_2 = self.dictionary.get(particle_2)[1]
         y_1 = self.dictionary.get(particle_1)[2]
         y_2 = self.dictionary.get(particle_2)[2]
-    
         dx = x_2 - x_1
         dy = y_2 - y_1
         magnitude = (dx**2 + dy**2)**.5
@@ -43,7 +43,7 @@ class OrbitSystem:
 
     # Force of Gravity of particle_2 on particle_1
     def __gforce(self, particle_1 : int, particle_2 : int) :
-        vector = self.__findvector(self, particle_1, particle_2)
+        vector = self.__findvector(particle_1, particle_2)
         m_2 = self.dictionary.get(particle_2)[0]
         acceleration = self.Grav*m_2/(vector[0])**2
         self.dictionary.get(particle_1)[5] += acceleration*math.cos(vector[1])
@@ -54,7 +54,7 @@ class OrbitSystem:
         for x in range(0,self.numberofparticle):
             for y in range (0,self.numberofparticle):
                 if x != y:
-                    self.__gforce(self.dictionary, x, y)
+                    self.__gforce(x, y)
 
     def __position(self, index : int) :
         x_vel = self.dictionary.get(index)[3]
@@ -107,3 +107,4 @@ class OrbitSystem:
             x_pos = self.x_list[index][particle]
             y_pos = self.y_list[index][particle]
             print (f"{x_pos}, {y_pos}")
+            
