@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import pandas as pd
 
 class OrbitSystem:
     def __init__(self, timeinterval : float, trialamount : int, reportinterval : int):
@@ -7,7 +8,6 @@ class OrbitSystem:
         self.timeinterval = timeinterval
         self.trialamount = trialamount
         self.reportinterval = reportinterval
-
         self.numberofparticle = 0
         self.dictionary = {}
         self.x_list = []
@@ -15,7 +15,6 @@ class OrbitSystem:
         self.Grav = 6.6743*(10**-11)
 
     def addparticle(self, mass : int, x_pos : float, y_pos :float, x_vel : float, y_vel : float):
-        
         self.dictionary.update({self.numberofparticle : [mass, x_pos, y_pos, x_vel, y_vel, 0, 0]})
         self.numberofparticle += 1
 
@@ -97,14 +96,25 @@ class OrbitSystem:
         
     def runsim(self) :
         for index in range(self.trialamount) :
+            if (index % self.reportinterval == 0) : # first so that it writes inital position
+                self.__recordpos()
+            
             self.__apply_gforce()
             self.__model()
-            if (index % self.reportinterval == 0) :
-                self.__recordpos()
+
 
     def writecsv(self, file : str, particle : int) :
         for index in range(0, len(self.x_list)) :
             x_pos = self.x_list[index][particle]
             y_pos = self.y_list[index][particle]
             print (f"{x_pos}, {y_pos}")
-            
+
+    def writedf(self, particle : int):
+        particledf = pd.DataFrame()
+        
+        for index in range (len(self.x_list)):
+            x_pos = self.x_list[index][particle]
+            y_pos = self.y_list[index][particle]
+            temp_df = pd.DataFrame({f"{particle}x": x_pos, f"{particle}y": y_pos}, index=[index])
+            particledf = pd.concat([particledf, temp_df ], ignore_index=True)
+        return particledf
