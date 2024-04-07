@@ -2,9 +2,12 @@ import math
 import numpy as np
 import pandas as pd
 
+"""This file defines the Class OrbitSystem which serves to calculate future states given the inital conditions"""
+
 class OrbitSystem:
     def __init__(self, timeinterval : float, trialamount : int, reportinterval : int):
-        # interval - delta t measurement(seconds) amount - number of intervals ran (#) report - number till reporting postition (#)
+        # interval - delta t measurement(seconds) amount - number of intervals ran (#) 
+        #report - number till reporting postition (#)
         self.timeinterval = timeinterval
         self.trialamount = trialamount
         self.reportinterval = reportinterval
@@ -55,6 +58,7 @@ class OrbitSystem:
                 if x != y:
                     self.__gforce(x, y)
 
+    # updates dictionary with new position values
     def __position(self, index : int) :
         x_vel = self.dictionary.get(index)[3]
         y_vel = self.dictionary.get(index)[4]
@@ -65,6 +69,8 @@ class OrbitSystem:
         self.dictionary.get(index)[1] += .5 * x_acc * (dt ** 2) + x_vel * dt 
         self.dictionary.get(index)[2] += .5 * y_acc * (dt ** 2) + y_vel * dt
 
+    # updates dictionary with new velocity values, uses basic Newtons kinematics, 
+    # index is index of particle being measured
     def __velocity(self, index : int) :
         x_acc = self.dictionary.get(index)[5]
         y_acc = self.dictionary.get(index)[6]
@@ -73,10 +79,12 @@ class OrbitSystem:
         self.dictionary.get(index)[3] += x_acc * dt
         self.dictionary.get(index)[4] += y_acc * dt
 
+    # clears acceleration vector for new set of calculations
     def __resetacc(self, index : int) :
         self.dictionary.get(index)[5] = 0
         self.dictionary.get(index)[6] = 0
 
+    # appends the main recording lists (x_list and y_list) with the current position of system when called.
     def __recordpos(self) :
         temp_x = []
         temp_y = []
@@ -88,12 +96,14 @@ class OrbitSystem:
         self.x_list.append(temp_x)
         self.y_list.append(temp_y)
     
+    # calculates the new positions, velocities, and then resets the acceleration of Dictionary
     def __model(self) :
         for index in self.dictionary :
             self.__position(index)
             self.__velocity(index)
             self.__resetacc(index)
-        
+
+    # main simulation, runs the main loop to model the given system. Prints and updates the dictionary
     def runsim(self) :
         for index in range(self.trialamount) :
             if (index % self.reportinterval == 0) : # first so that it writes inital position
@@ -102,16 +112,16 @@ class OrbitSystem:
             self.__apply_gforce()
             self.__model()
 
-
+    # prints a csv for a given particle
     def writecsv(self, file : str, particle : int) :
         for index in range(0, len(self.x_list)) :
             x_pos = self.x_list[index][particle]
             y_pos = self.y_list[index][particle]
             print (f"{x_pos}, {y_pos}")
 
+    # returns a Pandas DataFrame with X and Y positions for the passed particle
     def writedf(self, particle : int):
         particledf = pd.DataFrame()
-        
         for index in range (len(self.x_list)):
             x_pos = self.x_list[index][particle]
             y_pos = self.y_list[index][particle]
