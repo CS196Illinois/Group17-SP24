@@ -1,0 +1,74 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Slider
+
+# Constants and initial conditions setup
+G_init = 1
+H_init = 1
+alpha_init = 0.01
+m_val = 3
+dt = 0.01
+total_steps = 1000  # Adjust total steps for demonstration
+
+# Initial conditions
+masses = np.array([10, 0.1, 0.1])
+positions = np.array([[0, 0], [100, 0], [-100, 0]], dtype=float)
+velocities = np.array([[0, 0], [0, 10], [0, -10]], dtype=float)
+
+# Create the figure and axis for animation
+fig, ax = plt.subplots()
+plt.subplots_adjust(bottom=0.25)
+lines = [ax.plot([], [], 'o', label=f'Body {i+1}')[0] for i in range(3)]
+trails = [ax.plot([], [], '-', alpha=0.5)[0] for i in range(3)]  # For trails
+time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+
+# Setting up plot limits
+ax.set_xlim(-150, 150)
+ax.set_ylim(-150, 150)
+ax.legend()
+ax.grid(True)
+
+# Sliders for real-time interaction
+axcolor = 'lightgoldenrodyellow'
+ax_G = plt.axes([0.2, 0.1, 0.65, 0.03], facecolor=axcolor)
+ax_H = plt.axes([0.2, 0.15, 0.65, 0.03], facecolor=axcolor)
+ax_alpha = plt.axes([0.2, 0.2, 0.65, 0.03], facecolor=axcolor)
+
+s_G = Slider(ax_G, 'G', 0.1, 10.0, valinit=G_init)
+s_H = Slider(ax_H, 'H', 0.1, 10.0, valinit=H_init)
+s_alpha = Slider(ax_alpha, 'Alpha', 0.001, 0.1, valinit=alpha_init)
+
+# Update function for the animation
+def update(frame):
+    global positions, velocities
+    G = s_G.val
+    H = s_H.val
+    alpha = s_alpha.val
+    accelerations = compute_acceleration(positions, velocities, masses, G, H, alpha, m_val)
+    velocities += accelerations * dt
+    positions += velocities * dt
+    for i, (line, trail) in enumerate(zip(lines, trails)):
+        line.set_data(positions[i, 0], positions[i, 1])
+        xdata, ydata = trail.get_data()
+        trail.set_data(np.append(xdata, positions[i, 0]), np.append(ydata, positions[i, 1]))
+    time_text.set_text(f'Time: {frame * dt:.2f} s')
+    return lines + trails + [time_text]
+
+# Compute acceleration
+def compute_acceleration(positions, velocities, masses, G, H, alpha, m):
+    n = len(masses)
+    accelerations = np.zeros_like(positions)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                r = np.linalg.norm(positions[j] - positions[i])
+                unit_vector = (positions[j] - positions[i]) / r
+                force = (G * masses[j] / r**2) - (H / r**m) - alpha * np.linalg.norm(velocities[i] - velocities[j])
+                accelerations[i] += force * unit_vector / masses[i]
+    return accelerations
+
+# Create the animation
+ani = FuncAnimation(fig, update, frames=np.arange(total_steps), blit=True)
+
+plt.show()
