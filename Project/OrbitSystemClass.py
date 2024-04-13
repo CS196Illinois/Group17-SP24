@@ -1,13 +1,30 @@
+"""File contains OrbitSystem, the main simulation class"""
 import math
 import numpy as np
 import pandas as pd
 
-"""This file defines the Class OrbitSystem which serves to calculate future states given the inital conditions"""
+
 
 class OrbitSystem:
+    """
+    Main Class that given a starting state, calculates future states \n
+    Example Steps:
+    - system = OrbitSystem(timeinterval, trialnumber, reportinterval)
+    - system.addparticle(mass, x_pos, y_pos, x_vel, y_vel)
+    - system.runsim()
+    """
     def __init__(self, timeinterval : float, trialamount : int, reportinterval : int):
-        # interval - delta t measurement(seconds) amount - number of intervals ran (#) 
-        #report - number till reporting postition (#)
+        """
+        Creates and defines simulation parameters \n
+        Args: \n
+            timeinterval: sets delta t [seconds] \n
+            trialamount:  # of runs at delta t \n
+                Calculate total time by dividing by timeinterval \n
+                Year = Year / Day if delta t is Day \n
+            reportinterval: # of runs at delta t before reporting position \n
+                Calculate frequency of reports by dividing by timeinterval
+        """
+
         self.timeinterval = timeinterval
         self.trialamount = trialamount
         self.reportinterval = reportinterval
@@ -18,10 +35,23 @@ class OrbitSystem:
         self.Grav = 6.6743*(10**-11)
 
     def addparticle(self, mass : int, x_pos : float, y_pos :float, x_vel : float, y_vel : float):
+        """
+        Adds a particle to the system \n
+        Args: \n
+            mass: [kg] \n
+            ?_pos: position - Cartesian [meter] \n
+            ?_vel: velocity - Cartesian [meter / second]
+        """
         self.dictionary.update({self.numberofparticle : [mass, x_pos, y_pos, x_vel, y_vel, 0, 0]})
         self.numberofparticle += 1
 
+
+
     def initalconditions(self) :
+        """
+        Returns: \n
+            returns the particle dictionary at the given point
+        """
         return self.dictionary
     
     # Finds vector for calulations - returns vector pointing from particle 1 to particle 2 - allows direct calculation for gforce components
@@ -105,6 +135,10 @@ class OrbitSystem:
 
     # main simulation, runs the main loop to model the given system. Prints and updates the dictionary
     def runsim(self) :
+        """
+        Runs the simulation with the given simulation parameters and added particles
+        - Last function to call
+        """
         for index in range(self.trialamount) :
             if (index % self.reportinterval == 0) : # first so that it writes inital position
                 self.__recordpos()
@@ -113,7 +147,12 @@ class OrbitSystem:
             self.__model()
 
     # prints a csv for a given particle
-    def writecsv(self, file : str, particle : int) :
+    def writecsv(self, particle : int) :
+        """
+        Prints ?_positions of a single particle as a csv to the terminal  \n
+        Args: \n
+            particle: the index of the wanted particle, starts at 0
+        """
         for index in range(0, len(self.x_list)) :
             x_pos = self.x_list[index][particle]
             y_pos = self.y_list[index][particle]
@@ -121,6 +160,14 @@ class OrbitSystem:
 
     # returns a Pandas DataFrame with X and Y positions for the passed particle
     def writedf(self, particle : int):
+        """
+        Takes the index of a particle and returns a DataFrame of positions \n
+        Args: \n
+            particle: the index of the wanted particle, starts at 0 \n
+        
+        Returns: \n
+            returns a dataframe with columns x_pos, y_pos starting with inital conditions
+        """
         particledf = pd.DataFrame()
         for index in range (len(self.x_list)):
             x_pos = self.x_list[index][particle]

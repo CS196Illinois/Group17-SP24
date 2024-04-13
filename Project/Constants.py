@@ -1,4 +1,5 @@
-"""This file holds Solar System constants that users might find useful
+"""
+This file holds Solar System constants that users might find useful
 - all Constants defined in SI units
 - constants All Caps to follow Python Naming Convention
 """

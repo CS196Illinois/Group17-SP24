@@ -1,15 +1,12 @@
+""""
+This file gives preset systems for 
+GraphingClass visual troubleshooting
+"""
+
 from OrbitSystemClass import OrbitSystem
 from GraphingClass import Graphing
 from Constants import *
 
-""""
-This file gives preset systems for 
-GraphingClass visual troubleshooting
-
-The following are standard test systems:
-- triangle 
-- linear2
-"""
 
 def triangle():
     """3 particles in triangle with no velocity"""
@@ -31,7 +28,8 @@ def triangle():
     plot.show()
 
 def linear2():
-    """2 colinear particles with no velocity
+    """
+    2 colinear particles with no velocity
     - displays a weird behavior, notice y value scale (e-23)
     """
     meep = OrbitSystem(1,1000,60)
