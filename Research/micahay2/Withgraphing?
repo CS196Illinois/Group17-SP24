@@ -1,0 +1,230 @@
+import math
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+class OrbitSystem:
+    def __init__(self, timeinterval : float, trialamount : int, reportinterval : int, scalefactor : float = 1):
+        # interval - delta t measurement(seconds) amount - number of intervals ran (#) report - number till reporting postition (#)
+        self.timeinterval = timeinterval
+        self.trialamount = trialamount
+        self.reportinterval = reportinterval
+        self.scalefactor = scalefactor
+        self.numberofparticle = 0
+        self.dictionary = {}
+        self.x_list = []
+        self.y_list = []
+        self.z_list = []
+        self.Grav = 6.6743*(10**-11)
+        
+    def addparticle(self, mass : int, x_pos : float, y_pos :float, z_pos :float, x_vel : float, y_vel : float, z_vel :float, radius : float = 0):
+        self.dictionary.update({self.numberofparticle : [mass, x_pos, y_pos, x_vel, y_vel, 0, 0, z_pos, z_vel, 0, radius]})
+        self.numberofparticle += 1
+    
+    def initalconditions(self) :
+        return self.dictionary
+    
+    # Finds vector for calulations - returns vector pointing from particle 1 to particle 2 - allows direct calculation for gforce components
+    def __findvector(self, particle_1, particle_2) :
+        x_1 = self.dictionary.get(particle_1)[1]
+        x_2 = self.dictionary.get(particle_2)[1]
+        y_1 = self.dictionary.get(particle_1)[2]
+        y_2 = self.dictionary.get(particle_2)[2]
+        z_1 = self.dictionary.get(particle_1)[7]
+        z_2 = self.dictionary.get(particle_2)[7]
+        m_1 = self.dictionary.get(particle_1)[0]
+        m_2 = self.dictionary.get(particle_2)[0]
+        r_1 = self.dictionary.get(particle_1)[10]
+        r_2 = self.dictionary.get(particle_2)[10]
+        dx = x_2 - x_1
+        dy = y_2 - y_1
+        dz = z_2 - z_1
+        magnitude = (dx**2 + dy**2 + dz**2)**.5
+
+        #Collision procedure
+        if ((magnitude < r_1 + r_2) and ((m_2 != 0) and (m_1 != 0))):
+            v_1x = self.dictionary.get(particle_1)[3]
+            v_1y = self.dictionary.get(particle_1)[4]
+            v_1z = self.dictionary.get(particle_1)[8]
+            v_2x = self.dictionary.get(particle_2)[3]
+            v_2y = self.dictionary.get(particle_2)[4]
+            v_2z = self.dictionary.get(particle_2)[8]
+
+            x_1 = self.dictionary.get(particle_1)[1]
+            x_2 = self.dictionary.get(particle_2)[1]
+            y_1 = self.dictionary.get(particle_1)[2]
+            y_2 = self.dictionary.get(particle_2)[2]
+            z_1 = self.dictionary.get(particle_1)[7]
+            z_2 = self.dictionary.get(particle_2)[7]
+
+            self.dictionary.get(particle_2)[3] = (v_2x*m_2 + v_1x*m_1)/(m_1+m_2)
+            self.dictionary.get(particle_2)[4] = (v_2y*m_2 + v_1y*m_1)/(m_1+m_2)
+            self.dictionary.get(particle_2)[8] = (v_2z*m_2 + v_1z*m_1)/(m_1+m_2)
+
+            self.dictionary.get(particle_1)[3] = 0
+            self.dictionary.get(particle_1)[4] = 0
+            self.dictionary.get(particle_1)[8] = 0
+
+            self.dictionary.get(particle_2)[1] = (x_1*m_1+x_2*m_2)/(m_1+m_2)
+            self.dictionary.get(particle_2)[2] = (y_1*m_1+y_2*m_2)/(m_1+m_2)
+            self.dictionary.get(particle_2)[7] = (z_1*m_1+z_2*m_2)/(m_1+m_2)
+
+            self.dictionary.get(particle_2)[0] = m_1 + m_2
+            self.dictionary.get(particle_2)[10] = (r_1**3+r_2**3)**(1/3)
+            self.dictionary.get(particle_1)[0] = 0
+            self.dictionary.get(particle_1)[10] = 0
+            m_1 = 0
+            m_2 = self.dictionary.get(particle_2)[0]
+            #print (f"(Collision at {x_2}, {y_2}, {z_2})")
+            #Here are two options; the one below prints a sphere the size of the new sphere where the collision took place
+            #print (f"sphere(({x_2*self.scalefactor}, {y_2*self.scalefactor}, {z_2*self.scalefactor}),{self.dictionary.get(particle_2)[10]*self.scalefactor})")
+            
+        return m_1, m_2, dx, dy, dz, magnitude
+
+
+    # Force of Gravity of particle_2 on particle_1
+    def __gforce(self, particle_1 : int, particle_2 : int) :
+        m_1, m_2, dx, dy, dz, magnitude = self.__findvector(particle_1, particle_2)
+        if magnitude == 0 or m_1 == 0:
+            acceleration = 0
+        else:
+        
+            acceleration = self.Grav*m_2/(magnitude)**2
+            self.dictionary.get(particle_1)[5] += acceleration*dx/magnitude
+            self.dictionary.get(particle_1)[6] += acceleration*dy/magnitude
+            self.dictionary.get(particle_1)[9] += acceleration*dz/magnitude
+
+    #iterates through every particle and applys gforce function
+    def __apply_gforce(self) :
+        for x in range(0,self.numberofparticle):
+            for y in range (0,self.numberofparticle):
+                if x != y:
+                    self.__gforce(x, y)
+
+    def __position(self, index : int) :
+        x_vel = self.dictionary.get(index)[3]
+        y_vel = self.dictionary.get(index)[4]
+        z_vel = self.dictionary.get(index)[8]
+        x_acc = self.dictionary.get(index)[5]
+        y_acc = self.dictionary.get(index)[6]
+        z_acc = self.dictionary.get(index)[9]
+        dt = self.timeinterval
+
+        self.dictionary.get(index)[1] += .5 * x_acc * (dt ** 2) + x_vel * dt 
+        self.dictionary.get(index)[2] += .5 * y_acc * (dt ** 2) + y_vel * dt
+        self.dictionary.get(index)[7] += .5 * z_acc * (dt ** 2) + z_vel * dt
+
+    def __velocity(self, index : int) :
+        x_acc = self.dictionary.get(index)[5]
+        y_acc = self.dictionary.get(index)[6]
+        z_acc = self.dictionary.get(index)[9]
+        dt = self.timeinterval
+
+        self.dictionary.get(index)[3] += x_acc * dt
+        self.dictionary.get(index)[4] += y_acc * dt
+        self.dictionary.get(index)[8] += z_acc * dt
+
+    def __resetacc(self, index : int) :
+        self.dictionary.get(index)[5] = 0
+        self.dictionary.get(index)[6] = 0
+        self.dictionary.get(index)[9] = 0
+
+    def __recordpos(self) :
+        temp_x = []
+        temp_y = []
+        temp_z = []
+
+        for index in self.dictionary :
+            temp_x.append(self.dictionary.get(index)[1])
+            temp_y.append(self.dictionary.get(index)[2])
+            temp_z.append(self.dictionary.get(index)[7])
+        
+        self.x_list.append(temp_x)
+        self.y_list.append(temp_y)
+        self.z_list.append(temp_z)
+    
+    def __model(self) :
+        for index in self.dictionary :
+            self.__position(index)
+            self.__velocity(index)
+            self.__resetacc(index)
+        
+    def runsim(self) :
+        for index in range(self.trialamount) :
+            self.__apply_gforce()
+            self.__model()
+            if (index % self.reportinterval == 0) :
+                self.__recordpos()
+
+    def writecsv(self, file : str, particle : int) :
+        for index in range(0, len(self.x_list)) :
+            x_pos = self.x_list[index][particle]*(self.scalefactor)
+            y_pos = self.y_list[index][particle]*(self.scalefactor)
+            z_pos = self.z_list[index][particle]*(self.scalefactor)
+            
+            #these result in exponents which don't copy well into Desmos
+            # if abs(x_pos) < 10**-4:
+            #     x_pos = 0
+            # if abs(y_pos) < 10**-4:
+            #     y_pos = 0
+            # if abs(z_pos) < 10**-4:
+            #     z_pos = 0
+                
+            print (f"({x_pos}, {y_pos}, {z_pos})")
+            #amount multiplied by is only so it fits on Desmos3D
+    
+    def writedf(self, particle : int):
+        """
+        Takes the index of a particle and returns a DataFrame of positions \n
+        Args: \n
+            particle: the index of the wanted particle, starts at 0 \n
+        Returns: \n
+            returns a dataframe with columns x_pos, y_pos starting with inital conditions
+        """
+        particledf = pd.DataFrame()
+        for index in range (len(self.x_list)):
+            x_pos = self.x_list[index][particle]
+            y_pos = self.y_list[index][particle]
+            z_pos = self.z_list[index][particle]
+            temp_df = pd.DataFrame({f"{particle}x": x_pos, f"{particle}y": y_pos, f"{particle}z": z_pos}, index=[index])
+            particledf = pd.concat([particledf, temp_df ], ignore_index=True)
+        return particledf
+    
+trialy = OrbitSystem(3600,365*24*6,24)
+trialy.addparticle(1.989*(10**30), 0, 0, 0, 0, 0, 0)
+trialy.addparticle(1.989*(10**30), 148.52*(10**9), 0, 0, 0, 30000, 10000)
+trialy.addparticle(1.989*(10**30), 0, 148.52*(10**9), 0, 20000, 0, 0)
+trialy.runsim()
+# trialy.writedf(0)
+# trialy.writedf(1)
+# trialy.writedf(2)
+# trialy.writecsv('output.csv', particle=0)
+# trialy.writecsv('output.csv', particle=1)
+# trialy.writecsv('output.csv', particle=2)
+
+
+# Assuming you have already executed the code to generate the DataFrame
+df_particle_0 = trialy.writedf(0)
+df_particle_1 = trialy.writedf(1)
+df_particle_2 = trialy.writedf(2)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Plotting particle 0
+ax.plot(df_particle_0['0x'], df_particle_0['0y'], df_particle_0['0z'], label='Particle 0')
+
+# Plotting particle 1
+ax.plot(df_particle_1['1x'], df_particle_1['1y'], df_particle_1['1z'], label='Particle 1')
+
+# Plotting particle 2
+ax.plot(df_particle_2['2x'], df_particle_2['2y'], df_particle_2['2z'], label='Particle 2')
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+
+plt.title('Orbit Simulation')
+plt.legend()
+plt.show()
